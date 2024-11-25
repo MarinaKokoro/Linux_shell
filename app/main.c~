@@ -1,0 +1,32 @@
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+
+	FILE *history = fopen("history.txt", "a");
+	while(1){
+		printf("$ ");
+  		fflush(stdout);
+
+  		char input[100];
+  		if(fgets(input, 100, stdin) == NULL){
+			fclose(history);
+			return 0;
+		}
+  		input[strlen(input) - 1] = '\0';
+		fputs(input, history);
+       		fputs("\n", history);
+
+		if(strcmp(input, "echo") == 0){
+			char inp2[100];
+			fgets(inp2, 100, stdin);
+			printf(inp2);
+		}
+
+		if(strcmp(input, "exit") == 0 || strcmp(input, "\\q") == 0){
+			fclose(history);
+			return 0;
+		}
+  		printf("%s: command not found\n", input);
+	}
+}
