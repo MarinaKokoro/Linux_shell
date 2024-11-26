@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <stdint.h>
+#include <fcntl.h>
 
 
 void handle_sighup(int sig){
@@ -83,13 +84,57 @@ int main() {
 			else{
 				printf("Диск не загрузочный \n");
 			}
-		} 
+		}
+	       	else if(strcmp(s, "\\mem") == 0){
+			pid_t pid = atoi(input+4); 
+			const char* output_file = "damp_proc";
+			char maps_path[256], mem_path[256], line[256];
+			snprintf(maps_path, sizeof(maps_path), "/proc/%d/maps", pid);
+			snprintf(mem_path, sizeof(mem_path), "/proc/%d/mem", pid);
+
+			FILE* maps_file = fopen(maps_path, "r");
+			if (!maps_file) {
+			    perror("Cannot open maps \n");
+			}
+
+			int mem_fd = open(mem_path, O_RDONLY);
+			if (mem_fd == -1) {
+			    perror("Cannot open mem \n");
+			    fclose(maps_file);
+			}
+
+			int out_fd = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			if (out_fd == -1) {
+			    perror("Cannot open output file \n");
+			    fclose(maps_file);
+			    close(mem_fd);
+			}
+
+			// Читаем регионы памяти из maps и дампим их
+			while (fgets(line, sizeof(line), maps_file)) {
+			    unsigned long start, end;
+			    if (sscanf(line, "%lx-%lx", &start, &end) == 2) {
+			        char buffer[4096];
+			        for (unsigned long addr = start; addr < end; addr += sizeof(buffer)) {
+			            ssize_t bytes = pread(mem_fd, buffer, sizeof(buffer), addr);
+			            if (bytes > 0)
+			                write(out_fd, buffer, bytes);
+				}
+			    }
+			}
+
+			fclose(maps_file);
+			close(mem_fd);
+			close(out_fd);
+
+			printf("Dump saved to %s\n", output_file);
+		}	
 
 
 		else if(strcmp(input, "exit") == 0 || strcmp(input, "\\q") == 0){
 			fclose(history);
 			return 0;
-	;	}
+		}
 		else{
   			printf("%s: command not found\n", input);
 		}

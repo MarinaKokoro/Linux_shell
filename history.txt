@@ -51,3 +51,13 @@ exit
 
 
 
+\l /dev/sda1
+\l /dev/sda
+\e $PATH
+\e $USER
+
+\mem 43
+\mem
+/mem
+/mem 4531
+\mem 4531
